@@ -22,9 +22,8 @@ var IgnoreFS embed.FS
 func generate(lang string) error {
 	f, err := IgnoreFS.ReadFile(path.Join("ignore", fmt.Sprintf("%s.txt", lang)))
 	if err != nil {
-		return fmt.Errorf("There is no gitignore for %s", lang)
+		return fmt.Errorf("There is no .gitignore for %s", lang)
 	}
-	fmt.Printf("Created .gitignore file for %s 🎉\n", lang)
 	if err := os.WriteFile(".gitignore", f, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to write file %s", err.Error())
 	}
@@ -34,9 +33,11 @@ func generate(lang string) error {
 func main() {
 	if len(os.Args) != 2 {
 		usage()
-		os.Exit(1)
+		return
 	}
 	if err := generate(os.Args[1]); err != nil {
 		fmt.Println(err.Error())
+		return
 	}
+	fmt.Printf("Created .gitignore file for %s 🎉\n", os.Args[1])
 }
