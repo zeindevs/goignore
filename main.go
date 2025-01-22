@@ -10,7 +10,7 @@ import (
 func usage() {
 	msg := `
 Usage: goignore [PROJECT TYPE]
-Types Available: go,node,python,c
+Types Available: go,node,python,c,cpp
 Example: goignore go
   `
 	fmt.Println(msg)
