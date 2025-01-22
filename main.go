@@ -20,7 +20,7 @@ Example: goignore go
 var IgnoreFS embed.FS
 
 func generate(lang string) error {
-	f, err := IgnoreFS.ReadFile(path.Join("ignore", fmt.Sprintf("%s.txt", lang)))
+	f, err := IgnoreFS.ReadFile(path.Join("ignore", fmt.Sprintf("%s.gitignore", lang)))
 	if err != nil {
 		return fmt.Errorf("There is no .gitignore for %s", lang)
 	}
