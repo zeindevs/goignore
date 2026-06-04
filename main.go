@@ -9,7 +9,7 @@ import (
 
 func usage() {
 	msg := `
-Usage: goignore [PROJECT TYPE]
+Usage: goignore [lang]
 Types Available: go,node,python,c,cpp
 Example: goignore go
   `
@@ -24,7 +24,7 @@ func generate(lang string) error {
 	if err != nil {
 		return fmt.Errorf("There is no .gitignore for %s", lang)
 	}
-	if err := os.WriteFile(".gitignore", f, os.ModePerm); err != nil {
+	if err := os.WriteFile(".gitignore", f, 0644); err != nil {
 		return fmt.Errorf("failed to write file %s", err.Error())
 	}
 	return nil

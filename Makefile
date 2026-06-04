@@ -1,8 +1,12 @@
-run: build
-	./bin/goignore
+LDFLAGS = -ldflags="-s -w"
+
+all: build run
 
 build:
-	go build -o bin/goignore main.go
+	go build $(LDFLAGS) -o bin/goignore main.go
 
 install:
-	go install -ldflags="-s -w" .
+	CGO_ENABLED=0 go install $(LDFLAGS) .
+
+run:
+	./bin/goignore
