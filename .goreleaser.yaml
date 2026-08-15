@@ -6,6 +6,7 @@ version: 2
 before:
   hooks:
     - go mod tidy
+    - sh -c "git describe --tags --abbrev=0 > version.txt"
 
 builds:
   - main: ./...
@@ -23,7 +24,7 @@ builds:
 archives:
   - formats: [tar.gz]
     name_template: >-
-      {{ .ProjectName }}_
+      {{ .ProjectName }}_v{{ .Version }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
@@ -32,6 +33,9 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
+
+release:
+  draft: true
 
 changelog:
   sort: asc

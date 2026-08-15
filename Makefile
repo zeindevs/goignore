@@ -6,6 +6,9 @@ build:
 install:
 	go install -ldflags="-s -w" .
 
+release:
+	goreleaser release --auto-snapshot --clean
+
 run:
 	./bin/goignore
 
