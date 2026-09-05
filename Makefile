@@ -1,10 +1,13 @@
+VERSION = $(shell git describe --tags --abbrev=0)
+LDFLAGS = -ldflags="-s -w"
+
 all: build run
 
 build:
-	go build -o bin/goignore main.go
+	go build $(LDFLAGS) -o bin/goignore .
 
 install:
-	go install -ldflags="-s -w" .
+	go install $(LDFLAGS) .
 
 release:
 	goreleaser release --auto-snapshot --clean

@@ -6,7 +6,6 @@ version: 2
 before:
   hooks:
     - go mod tidy
-    - sh -c "git describe --tags --abbrev=0 > version.txt"
 
 builds:
   - main: ./...
@@ -33,9 +32,6 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
-
-release:
-  draft: true
 
 changelog:
   sort: asc

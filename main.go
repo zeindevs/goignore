@@ -5,18 +5,25 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
+	"strings"
 )
+
+//go:embed banner.txt
+var bannerFS embed.FS
 
 //go:embed ignore
 var ignoreFS embed.FS
 
+var version = "v0.1.0"
+
+func printBanner() {
+	text, _ := bannerFS.ReadFile("banner.txt")
+	fmt.Print(strings.ReplaceAll(string(text), "$version", version))
+}
+
 func printUsage() {
-	msg := `Usage: goignore [lang]
-
-Lang available: go,node,python,c,cpp
-
-Example: goignore go`
-	fmt.Println(msg)
+	fmt.Println("Usage: goignore <lang>\n Help: -h")
 }
 
 func generate(lang string) error {
@@ -24,44 +31,55 @@ func generate(lang string) error {
 	if err != nil {
 		return fmt.Errorf("There is no .gitignore for %s", lang)
 	}
-
 	if err := os.WriteFile(".gitignore", f, 0644); err != nil {
-		return fmt.Errorf("Failed to write file %s", err.Error())
+		return fmt.Errorf("Failed to write file %s", err)
 	}
 	return nil
 }
 
 func main() {
-	if len(os.Args) != 2 {
+	if slices.Contains(os.Args, "-h") {
+		printBanner()
+		printUsage()
+		fmt.Print("\nList of generators:\n")
+		templ, _ := ignoreFS.ReadDir("ignore")
+		for _, tmp := range templ {
+			r := strings.NewReplacer(".gitignore", "")
+			tname := r.Replace(tmp.Name())
+			parts := strings.Split(tname, ".")
+			fmt.Println("-", parts[0])
+		}
+		return
+	}
+	if len(os.Args) < 2 {
 		printUsage()
 		return
 	}
-
 	fname := os.Args[1]
-
 	msg := "Created"
 	if _, err := os.Stat(".gitignore"); err == nil {
-		var y string
 		fmt.Print("File already exist, will be replaced? (y/n): ")
-		n, err := fmt.Scan(&y)
-		if err != nil {
-			fmt.Printf("Something went wrong: %s", err)
-			return
+		var y string
+		for {
+			n, err := fmt.Scan(&y)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Err: %s\n", err)
+				os.Exit(1)
+			}
+			if n != 1 {
+				fmt.Printf("Please enter (y/n)")
+				continue
+			}
+			if y != "y" {
+				return
+			}
+			msg = "Replaced"
+			break
 		}
-		if n != 1 {
-			fmt.Printf("Please enter (y/n)")
-			return
-		}
-		if y == "n" {
-			return
-		}
-		msg = "Replaced"
 	}
-
 	if err := generate(fname); err != nil {
-		fmt.Println(err.Error())
-		return
+		fmt.Fprintf(os.Stderr, "Err: %s\n", err)
+		os.Exit(1)
 	}
-
 	fmt.Printf("%s .gitignore file for %s 🎉\n", msg, fname)
 }
