@@ -2,84 +2,127 @@ package main
 
 import (
 	"embed"
+	"flag"
 	"fmt"
 	"os"
 	"path"
-	"slices"
 	"strings"
 )
 
-//go:embed banner.txt
-var bannerFS embed.FS
+var version = "dev"
 
 //go:embed ignore
 var ignoreFS embed.FS
 
-var version = "v0.1.0"
-
-func printBanner() {
-	text, _ := bannerFS.ReadFile("banner.txt")
-	fmt.Print(strings.ReplaceAll(string(text), "$version", version))
-}
-
-func printUsage() {
-	fmt.Println("Usage: goignore <lang>\n Help: -h")
-}
-
-func generate(lang string) error {
-	f, err := ignoreFS.ReadFile(path.Join("ignore", fmt.Sprintf("%s.gitignore", lang)))
-	if err != nil {
-		return fmt.Errorf("There is no .gitignore for %s", lang)
-	}
-	if err := os.WriteFile(".gitignore", f, 0644); err != nil {
-		return fmt.Errorf("Failed to write file %s", err)
-	}
-	return nil
-}
-
 func main() {
-	if slices.Contains(os.Args, "-h") {
-		printBanner()
-		printUsage()
-		fmt.Print("\nList of generators:\n")
-		templ, _ := ignoreFS.ReadDir("ignore")
-		for _, tmp := range templ {
-			r := strings.NewReplacer(".gitignore", "")
-			tname := r.Replace(tmp.Name())
-			parts := strings.Split(tname, ".")
-			fmt.Println("-", parts[0])
-		}
+	var showVer bool
+
+	flag.BoolVar(&showVer, "v", false, "show version")
+	flag.Usage = func() {
+		fmt.Print(fmt.Sprintf(`
+                _
+   ____ _____  (_)___ _____  ____  ________
+  / __ '/ __ \/ / __ '/ __ \/ __ \/ ___/ _ \
+ / /_/ / /_/ / / /_/ / / / / /_/ / /  /  __/
+ \__, /\____/_/\__, /_/ /_/\____/_/   \___/
+/____/        /____/
+
+Usage:
+  goignore go
+  goignore cpp
+
+Generators:
+%s
+Options:
+`, generators()))
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
+	if showVer {
+		fmt.Println("version", version)
 		return
 	}
-	if len(os.Args) < 2 {
-		printUsage()
+
+	if flag.NArg() < 1 {
+		flag.Usage()
 		return
 	}
-	fname := os.Args[1]
+
+	lang := flag.Arg(0)
+
+	templ, err := readIgnore(lang)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s", err)
+		os.Exit(1)
+	}
+
+	if err := writeIgnore(lang, templ); err != nil {
+		fmt.Fprintf(os.Stderr, "%s", err)
+		os.Exit(1)
+	}
+}
+
+func generators() string {
+	var sb strings.Builder
+
+	templ, _ := ignoreFS.ReadDir("ignore")
+
+	for _, tmp := range templ {
+		r := strings.NewReplacer(".gitignore", "")
+
+		tname := r.Replace(tmp.Name())
+		parts := strings.Split(tname, ".")
+
+		sb.WriteString(fmt.Sprintf("  %s\n", parts[0]))
+	}
+
+	return sb.String()
+}
+
+func readIgnore(lang string) ([]byte, error) {
+	templ, err := ignoreFS.ReadFile(path.Join("ignore", fmt.Sprintf("%s.gitignore", lang)))
+	if err != nil {
+		return nil, fmt.Errorf("There is no .gitignore for %s", lang)
+	}
+	return templ, nil
+}
+
+func writeIgnore(lang string, templ []byte) error {
 	msg := "Created"
+
 	if _, err := os.Stat(".gitignore"); err == nil {
-		fmt.Print("File already exist, will be replaced? (y/n): ")
 		var y string
+
+		fmt.Print("File already exist, will be replaced? (y/n): ")
+
 		for {
 			n, err := fmt.Scan(&y)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Err: %s\n", err)
 				os.Exit(1)
 			}
+
 			if n != 1 {
 				fmt.Printf("Please enter (y/n)")
 				continue
 			}
+
 			if y != "y" {
-				return
+				return nil
 			}
-			msg = "Replaced"
+
 			break
 		}
+
+		msg = "Replaced"
 	}
-	if err := generate(fname); err != nil {
-		fmt.Fprintf(os.Stderr, "Err: %s\n", err)
-		os.Exit(1)
+
+	if err := os.WriteFile(".gitignore", templ, 0644); err != nil {
+		return fmt.Errorf("Failed to write file %s", err)
 	}
-	fmt.Printf("%s .gitignore file for %s 🎉\n", msg, fname)
+
+	fmt.Printf("%s .gitignore file for %s 🎉\n", msg, lang)
+
+	return nil
 }
